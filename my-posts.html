@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <title>Bài viết của tôi</title>
+</head>
+<body>
+  <h1>Bài viết của tôi</h1>
+  <div id="myPosts">Đang tải bài viết...</div>
+
+  <script>
+    const token = localStorage.getItem("token");
+
+    function parseJwt(token) {
+      try {
+        const base64Url = token.split('.')[1];
+        const base64 = atob(base64Url.replace(/-/g, '+').replace(/_/g, '/'));
+        return JSON.parse(decodeURIComponent(escape(base64)));
+      } catch (e) {
+        return null;
+      }
+    }
+
+    const currentUser = parseJwt(token);
+
+    async function loadMyPosts() {
+      if (!currentUser || !currentUser.id) {
+        document.getElementById("myPosts").innerText = "Bạn chưa đăng nhập.";
+        return;
+      }
+
+      try {
+        const res = await fetch(`http://localhost:3000/api/posts/user/${currentUser.id}`, {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        });
+
+        const posts = await res.json();
+
+        const postList = posts.map(post => `
+          <div style="border: 1px solid #ccc; padding: 10px; margin-bottom: 10px;">
+            <h3>${post.title}</h3>
+            <p>${post.content}</p>
+            <small>Ngày đăng: ${new Date(post.createdAt).toLocaleString("vi-VN")}</small>
+          </div>
+        `).join("");
+
+        document.getElementById("myPosts").innerHTML = postList || "Bạn chưa đăng bài viết nào.";
+      } catch (err) {
+        console.error("Lỗi khi tải bài viết:", err);
+        document.getElementById("myPosts").innerText = "Không thể tải bài viết.";
+      }
+    }
+
+    loadMyPosts();
+  </script>
+</body>
+</html>
